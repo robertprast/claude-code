@@ -16,7 +16,9 @@ jobs:
 
       - name: Test jq with environment variables
         env:
-          GITHUB_COPILOT_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Note: Replace GITHUB_TOKEN with secrets.GITHUB_COPILOT_API_TOKEN if you have a dedicated Copilot API token
+          # This example uses GITHUB_TOKEN for demonstration purposes only
+          GITHUB_COPILOT_API_TOKEN: ${{ secrets.GITHUB_COPILOT_API_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
           echo "Testing jq env access..."
           

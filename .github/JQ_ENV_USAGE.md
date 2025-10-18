@@ -2,6 +2,10 @@
 
 This document explains how to use `jq` to access environment variables in GitHub Actions workflows.
 
+## Important Note
+
+The `GITHUB_COPILOT_API_TOKEN` referenced in this guide should be a dedicated GitHub Copilot API token stored in your repository secrets. If you don't have a specific Copilot API token, you can use `GITHUB_TOKEN` as a fallback for testing purposes, but be aware that it may not have the same permissions or functionality as a proper Copilot API token.
+
 ## Basic Usage
 
 The `jq` command-line JSON processor can access environment variables using the `env` object:
@@ -25,7 +29,9 @@ To access the `GITHUB_COPILOT_API_TOKEN` environment variable:
 # In a GitHub Actions workflow
 - name: Use Copilot API Token
   env:
-    GITHUB_COPILOT_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    # Use your GitHub Copilot API token secret
+    # Note: GITHUB_TOKEN is shown as a fallback for demonstration only
+    GITHUB_COPILOT_API_TOKEN: ${{ secrets.GITHUB_COPILOT_API_TOKEN || secrets.GITHUB_TOKEN }}
   run: |
     # Access the token via jq
     TOKEN=$(jq -n -r 'env.GITHUB_COPILOT_API_TOKEN')
