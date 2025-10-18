@@ -1,0 +1,46 @@
+name: JQ Environment Variable Example
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-jq-env:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Test jq with environment variables
+        env:
+          GITHUB_COPILOT_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Testing jq env access..."
+          
+          # Test accessing env object
+          echo "All environment variables:"
+          jq -n 'env | keys | sort' | head -20
+          
+          # Test accessing specific variable
+          echo ""
+          echo "Accessing GITHUB_COPILOT_API_TOKEN:"
+          TOKEN=$(jq -n -r 'env.GITHUB_COPILOT_API_TOKEN')
+          if [ -n "$TOKEN" ]; then
+            echo "✓ GITHUB_COPILOT_API_TOKEN is set (value hidden for security)"
+            echo "Token length: ${#TOKEN} characters"
+          else
+            echo "✗ GITHUB_COPILOT_API_TOKEN is not set"
+            exit 1
+          fi
+          
+          # Test with other environment variables
+          echo ""
+          echo "Testing other env variables:"
+          jq -n '{
+            workspace: env.GITHUB_WORKSPACE,
+            ref: env.GITHUB_REF,
+            token_exists: (env.GITHUB_COPILOT_API_TOKEN != null)
+          }'
