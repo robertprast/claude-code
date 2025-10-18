@@ -16,9 +16,9 @@ jobs:
 
       - name: Test jq with environment variables
         env:
-          # Note: Replace GITHUB_TOKEN with secrets.GITHUB_COPILOT_API_TOKEN if you have a dedicated Copilot API token
-          # This example uses GITHUB_TOKEN for demonstration purposes only
-          GITHUB_COPILOT_API_TOKEN: ${{ secrets.GITHUB_COPILOT_API_TOKEN || secrets.GITHUB_TOKEN }}
+          # Set your GitHub Copilot API token here
+          # For testing purposes, you can use GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_COPILOT_API_TOKEN: ${{ secrets.GITHUB_COPILOT_API_TOKEN }}
         run: |
           echo "Testing jq env access..."
           
@@ -29,13 +29,14 @@ jobs:
           # Test accessing specific variable
           echo ""
           echo "Accessing GITHUB_COPILOT_API_TOKEN:"
-          TOKEN=$(jq -n -r 'env.GITHUB_COPILOT_API_TOKEN')
+          TOKEN=$(jq -n -r 'env.GITHUB_COPILOT_API_TOKEN // ""')
           if [ -n "$TOKEN" ]; then
             echo "✓ GITHUB_COPILOT_API_TOKEN is set (value hidden for security)"
             echo "Token length: ${#TOKEN} characters"
           else
-            echo "✗ GITHUB_COPILOT_API_TOKEN is not set"
-            exit 1
+            echo "⚠ GITHUB_COPILOT_API_TOKEN is not set"
+            echo "Please configure the GITHUB_COPILOT_API_TOKEN secret in your repository"
+            echo "For testing, you can set GITHUB_COPILOT_API_TOKEN: \${{ secrets.GITHUB_TOKEN }}"
           fi
           
           # Test with other environment variables

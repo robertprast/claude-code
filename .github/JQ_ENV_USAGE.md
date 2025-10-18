@@ -30,12 +30,16 @@ To access the `GITHUB_COPILOT_API_TOKEN` environment variable:
 - name: Use Copilot API Token
   env:
     # Use your GitHub Copilot API token secret
-    # Note: GITHUB_TOKEN is shown as a fallback for demonstration only
-    GITHUB_COPILOT_API_TOKEN: ${{ secrets.GITHUB_COPILOT_API_TOKEN || secrets.GITHUB_TOKEN }}
+    GITHUB_COPILOT_API_TOKEN: ${{ secrets.GITHUB_COPILOT_API_TOKEN }}
   run: |
-    # Access the token via jq
-    TOKEN=$(jq -n -r 'env.GITHUB_COPILOT_API_TOKEN')
+    # Access the token via jq (with fallback to empty string if not set)
+    TOKEN=$(jq -n -r 'env.GITHUB_COPILOT_API_TOKEN // ""')
     echo "Token is set: $([ -n "$TOKEN" ] && echo "yes" || echo "no")"
+```
+
+**Note**: For testing purposes without a Copilot API token, you can temporarily use:
+```yaml
+GITHUB_COPILOT_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 ## Common Patterns
