@@ -1,0 +1,117 @@
+name: Test PR Title Handling
+
+on:
+  workflow_dispatch:
+    inputs:
+      title:
+        description: 'Title to test (e.g. [Test\n123] or [Test…] including brackets if you want it captured)'
+        required: true
+        default: "[Test\\n123]"
+      convert_literal_newlines:
+        description: 'Turn literal \n into real newlines before writing to $GITHUB_ENV'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  demo:
+    runs-on: ubuntu-20.04
+    name: Demo safe handling of PR titles
+    steps:
+      - name: Show raw input
+        shell: bash
+        env:
+          TITLE: ${{ github.event.inputs.title }}
+        run: |
+          set -Eeuo pipefail
+          echo "Raw title as entered (printf %q):"
+          printf '%q\n' "$TITLE"
+          echo
+          python3 - <<'PY'
+          import os
+          s = os.environ["TITLE"]
+          print("Python repr(TITLE):", repr(s))
+          PY
+
+      - name: Extract message (same logic), apply optional \\n→newline, and write safely to $GITHUB_ENV
+        id: extract
+        shell: bash
+        env:
+          TITLE: ${{ github.event.inputs.title }}
+          CONVERT: ${{ github.event.inputs.convert_literal_newlines }}
+        run: |
+          set -Eeuo pipefail
+
+          # 1) Extract text inside [] or {} and strip the brackets (your original idea)
+          message="$(printf '%s' "$TITLE" | grep -oP '[{\[][^}\]]+[}\]]' | tr -d '[]{}' || true)"
+
+          # 2) Fallback if nothing was captured
+          if [ -z "${message:-}" ]; then
+            message='Thank you for your contribution! We will review the pull request and get back to you soon.'
+          fi
+
+          # 3) OPTIONAL: convert literal "\n" sequences into real newlines
+          if [ "${CONVERT}" = "true" ]; then
+            message=${message//\\n/$'\n'}
+          fi
+
+          echo "Message after processing (printf %q):"
+          printf '%q\n' "$message"
+          echo
+
+          echo "Message bytes (od -An -t x1):"
+          printf '%s' "$message" | od -An -t x1
+          echo
+
+          # 4) SAFE write to $GITHUB_ENV (supports newlines and any characters)
+          {
+            printf 'message<<__MSG__\n%s\n__MSG__\n' "$message"
+          } >> "$GITHUB_ENV"
+
+          # Also drop the processed message to a file for easy download/inspection
+          printf '%s' "$message" > processed_message.txt
+
+      - name: Verify env propagation in a later step
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          echo "Reading $message from env in a new step:"
+          echo "printf %q:"
+          printf '%q\n' "$message"
+          echo
+          echo "sed -n l (shows line ends with $):"
+          # -n l shows line endings and escape sequences clearly
+          printf '%s' "$message" | sed -n l
+          echo
+          echo "Hex dump of env message (od -An -t x1):"
+          printf '%s' "$message" | od -An -t x1
+
+      - name: Simulate the *naive* write (DO NOT touch $GITHUB_ENV)
+        shell: bash
+        env:
+          TITLE: ${{ github.event.inputs.title }}
+          CONVERT: ${{ github.event.inputs.convert_literal_newlines }}
+        run: |
+          set -Eeuo pipefail
+          # Recreate the same extraction to mirror the naive path
+          msg="$(printf '%s' "$TITLE" | grep -oP '[{\[][^}\]]+[}\]]' | tr -d '[]{}' || true)"
+          if [ -z "${msg:-}" ]; then
+            msg='Thank you for your contribution! We will review the pull request and get back to you soon.'
+          fi
+          if [ "${CONVERT}" = "true" ]; then
+            msg=${msg//\\n/$'\n'}
+          fi
+
+          # This simulates the unsafe line that would corrupt the env file if msg contains a newline:
+          printf 'message=%s\n' "$msg" > env_naive_example.txt
+
+          echo "Simulated naive env file content (sed -n l):"
+          sed -n l env_naive_example.txt
+
+      - name: Upload artifacts for inspection
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-title-test-output
+          path: |
+            processed_message.txt
+            env_naive_example.txt
